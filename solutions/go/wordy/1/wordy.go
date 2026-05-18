@@ -1,0 +1,80 @@
+package wordy
+
+import (
+	"regexp"
+	"strconv"
+	"strings"
+)
+
+var (
+	re = regexp.MustCompile(`(\-?\d+)([^\-\d\?]*)`)
+)
+
+var operations = map[string]func(a, b int) int{
+	"plus":          add,
+	"minus":         subtract,
+	"multiplied by": multiply,
+	"divided by":    divide,
+}
+
+func add(a, b int) int {
+	return a + b
+}
+
+func subtract(a, b int) int {
+	return a - b
+}
+
+func multiply(a, b int) int {
+	return a * b
+}
+
+func divide(a, b int) int {
+	return a / b
+}
+
+func tokenize(question string) ([]int, []func(a, b int) int) {
+	var nums []int
+	var ops []func(a, b int) int
+
+	matches := re.FindAllStringSubmatch(question, -1)
+	for i, match := range matches {
+		if num, err := strconv.Atoi(match[1]); err == nil {
+			nums = append(nums, num)
+		} else {
+			return nil, nil
+		}
+		if i < len(matches)-1 {
+			op, ok := operations[strings.TrimSpace(match[2])]
+			if !ok {
+				return nil, nil
+			}
+			ops = append(ops, op)
+		} else if strings.TrimSpace(match[2]) != "" {
+			return nil, nil
+		}
+	}
+	if len(ops) != len(nums)-1 {
+		return nil, nil
+	}
+
+	return nums, ops
+}
+
+func Answer(question string) (int, bool) {
+	nums, ops := tokenize(question)
+
+	if len(nums) == 0 {
+		return 0, false
+	}
+
+	result := nums[0]
+	nums = nums[1:]
+
+	for i, num := range nums {
+		op := ops[i]
+		result = op(result, num)
+	}
+
+	return result, true
+}
